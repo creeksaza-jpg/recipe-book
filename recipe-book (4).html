@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイレシピ帳</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600;700&family=Shippori+Mincho:wght@400;600;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F3ED;
+    --parchment: #EDE5D8;
+    --warm-brown: #8B5E3C;
+    --dark-ink: #2C1810;
+    --terracotta: #C4603A;
+    --sage: #7A9E7E;
+    --gold: #C9A84C;
+    --light-sage: #EBF2EC;
+    --card-shadow: 0 2px 20px rgba(44,24,16,0.08);
+    --card-hover: 0 8px 40px rgba(44,24,16,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    font-family: 'Noto Serif JP', serif;
+    color: var(--dark-ink);
+    min-height: 100vh;
+  }
+
+  /* Texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--dark-ink);
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--cream);
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--terracotta);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .btn-add {
+    background: var(--terracotta);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+
+  .btn-add:hover { background: #B8502F; transform: translateY(-1px); }
+
+  .btn-ig {
+    background: transparent;
+    border: 1px solid rgba(247,243,237,0.3);
+    color: var(--cream);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .btn-ig:hover { border-color: var(--gold); color: var(--gold); }
+
+  .btn-yt {
+    background: transparent;
+    border: 1px solid rgba(247,243,237,0.3);
+    color: var(--cream);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .btn-yt:hover { border-color: #FF4444; color: #FF6666; }
+
+  .btn-web {
+    background: transparent;
+    border: 1px solid rgba(247,243,237,0.3);
+    color: var(--cream);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .btn-web:hover { border-color: #4fc3f7; color: #81d4fa; }
+
+  /* ===== DRIVE SYNC BAR ===== */
+  .sync-bar {
+    background: linear-gradient(135deg, #1a3a2a 0%, #0d2818 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 10px 24px;
+  }
+
+  .sync-bar-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sync-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 4px;
+  }
+
+  .drive-icon {
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, #4285F4, #34A853, #FBBC05, #EA4335);
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .btn-sync {
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    font-weight: 600;
+    border: none;
+  }
+
+  .btn-export {
+    background: rgba(66,133,244,0.15);
+    color: #7eb3ff;
+    border: 1px solid rgba(66,133,244,0.3);
+  }
+
+  .btn-export:hover { background: rgba(66,133,244,0.3); }
+
+  .btn-import {
+    background: rgba(52,168,83,0.15);
+    color: #7fd4a0;
+    border: 1px solid rgba(52,168,83,0.3);
+  }
+
+  .btn-import:hover { background: rgba(52,168,83,0.3); }
+
+  .sync-status {
+    margin-left: auto;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .sync-status.ok { color: #7fd4a0; }
+  .sync-status.warn { color: #ffd07b; }
+
+  .source-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--parchment);
+    margin-bottom: 20px;
+  }
+
+  .source-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: none;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    cursor: pointer;
+    color: #aaa;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+
+  .source-tab.active {
+    color: var(--terracotta);
+    border-bottom-color: var(--terracotta);
+    font-weight: 600;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .yt-badge {
+    display: inline-block;
+    background: #FF0000;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  /* ===== SEARCH & FILTER BAR ===== */
+  .filter-bar {
+    background: var(--parchment);
+    border-bottom: 1px solid rgba(139,94,60,0.15);
+    padding: 16px 24px;
+    position: sticky;
+    top: 64px;
+    z-index: 90;
+  }
+
+  .filter-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .search-wrap .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    opacity: 0.5;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    border: 1.5px solid rgba(139,94,60,0.2);
+    border-radius: 10px;
+    background: white;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    color: var(--dark-ink);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .search-input:focus { border-color: var(--terracotta); }
+  .search-input::placeholder { color: #aaa; }
+
+  .filter-select {
+    padding: 9px 12px;
+    border: 1.5px solid rgba(139,94,60,0.2);
+    border-radius: 10px;
+    background: white;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    color: var(--dark-ink);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .filter-select:focus { border-color: var(--terracotta); }
+
+  .tag-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(139,94,60,0.2);
+    background: white;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--warm-brown);
+    font-weight: 600;
+  }
+
+  .tag-chip:hover, .tag-chip.active {
+    background: var(--terracotta);
+    border-color: var(--terracotta);
+    color: white;
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .results-info {
+    font-size: 13px;
+    color: var(--warm-brown);
+    margin-bottom: 20px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.02em;
+  }
+
+  /* ===== RECIPE GRID ===== */
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .recipe-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+    border: 1px solid rgba(139,94,60,0.08);
+  }
+
+  .recipe-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-hover);
+  }
+
+  .card-image {
+    width: 100%;
+    height: 180px;
+    background: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-image img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .card-time-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(44,24,16,0.75);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .card-body { padding: 16px; }
+
+  .card-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .card-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-main { background: var(--light-sage); color: var(--sage); }
+  .tag-sub { background: #FEF3E8; color: var(--terracotta); }
+
+  .card-title {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    color: var(--dark-ink);
+  }
+
+  .card-ingredients {
+    font-size: 12px;
+    color: #7a6a60;
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding: 10px 16px;
+    border-top: 1px solid rgba(139,94,60,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-source {
+    font-size: 11px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .card-source .ig-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, #E1306C, #833AB4, #F77737);
+  }
+
+  .card-fav {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: all 0.2s;
+  }
+
+  .card-fav:hover, .card-fav.active { opacity: 1; transform: scale(1.2); }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,24,16,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--parchment);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--dark-ink);
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+  }
+
+  .modal-close:hover { opacity: 1; background: var(--parchment); }
+
+  .modal-body { padding: 20px 24px; }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--warm-brown);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .form-input, .form-textarea, .form-select-full {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(139,94,60,0.2);
+    border-radius: 10px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    color: var(--dark-ink);
+    background: var(--cream);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-input:focus, .form-textarea:focus, .form-select-full:focus {
+    border-color: var(--terracotta);
+    background: white;
+  }
+
+  .form-textarea { resize: vertical; min-height: 80px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .btn-primary {
+    background: var(--terracotta);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .btn-primary:hover { background: #B8502F; }
+
+  /* ===== AI EXTRACT MODAL ===== */
+  .ig-modal-body { padding: 24px; }
+
+  .ig-url-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px dashed rgba(139,94,60,0.3);
+    border-radius: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--cream);
+    color: var(--dark-ink);
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+
+  .ig-url-input:focus { border-color: var(--terracotta); border-style: solid; }
+
+  .ig-note {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.7;
+    background: var(--light-sage);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+
+  .ai-loading {
+    text-align: center;
+    padding: 20px;
+    display: none;
+  }
+
+  .ai-loading.show { display: block; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--parchment);
+    border-top-color: var(--terracotta);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== DETAIL MODAL ===== */
+  .detail-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    background: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+  }
+
+  .detail-section { margin-bottom: 20px; }
+
+  .detail-section-title {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--terracotta);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .detail-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(196,96,58,0.2);
+  }
+
+  .ingredients-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .ingredient-item {
+    font-size: 13px;
+    padding: 6px 10px;
+    background: var(--cream);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ingredient-name { color: var(--dark-ink); }
+  .ingredient-amount { color: var(--warm-brown); font-weight: 600; font-size: 12px; }
+
+  .steps-list { list-style: none; }
+
+  .step-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .step-num {
+    width: 24px; height: 24px;
+    background: var(--terracotta);
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--warm-brown);
+    display: none;
+  }
+
+  .empty-state.show { display: block; }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 16px; }
+  .empty-state h3 { font-family: 'Shippori Mincho', serif; font-size: 20px; margin-bottom: 8px; }
+  .empty-state p { font-size: 13px; opacity: 0.7; }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--dark-ink);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 13px;
+    z-index: 300;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 600px) {
+    .filter-inner { gap: 8px; }
+    .form-row { grid-template-columns: 1fr; }
+    .ingredients-list { grid-template-columns: 1fr; }
+    .recipe-grid { grid-template-columns: 1fr; }
+    .btn-ig span { display: none; }
+    .btn-yt span { display: none; }
+    .btn-web span { display: none; }
+    .sync-label { display: none; }
+    .sync-status { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🍳</div>
+      マイレシピ帳
+    </div>
+    <div class="header-actions">
+      <button class="btn-web" onclick="openSourceModal('web')">
+        <span style="font-size:15px">🌐</span>
+        <span>Webから追加</span>
+      </button>
+      <button class="btn-yt" onclick="openSourceModal('youtube')">
+        <span style="font-size:15px">▶️</span>
+        <span>YouTubeから追加</span>
+      </button>
+      <button class="btn-ig" onclick="openSourceModal('instagram')">
+        <span style="font-size:15px">📷</span>
+        <span>Instagramから追加</span>
+      </button>
+      <button class="btn-add" onclick="openAddModal()">
+        ＋ 手動で追加
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Google Drive Sync Bar -->
+<div class="sync-bar">
+  <div class="sync-bar-inner">
+    <div class="sync-label">
+      <span class="drive-icon"></span>
+      Google Drive 同期
+    </div>
+    <button class="btn-sync btn-export" onclick="exportToFile()">
+      📤 バックアップを保存
+    </button>
+    <button class="btn-sync btn-import" onclick="triggerImport()">
+      📥 バックアップを読み込む
+    </button>
+    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importFromFile(event)">
+    <div class="sync-status" id="syncStatus">— まだ保存していません</div>
+  </div>
+</div>
+  <div class="filter-inner">
+    <div class="search-wrap">
+      <span class="icon">🔍</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="料理名・材料で検索..." oninput="filterRecipes()">
+    </div>
+    <select class="filter-select" id="timeFilter" onchange="filterRecipes()">
+      <option value="">⏱ 調理時間</option>
+      <option value="15">〜15分</option>
+      <option value="30">〜30分</option>
+      <option value="60">〜60分</option>
+      <option value="999">60分以上</option>
+    </select>
+    <select class="filter-select" id="categoryFilter" onchange="filterRecipes()">
+      <option value="">📂 カテゴリ</option>
+      <option value="和食">和食</option>
+      <option value="洋食">洋食</option>
+      <option value="中華">中華</option>
+      <option value="スイーツ">スイーツ</option>
+      <option value="スープ">スープ</option>
+      <option value="サラダ">サラダ</option>
+      <option value="漬物">漬物</option>
+      <option value="調味料">調味料</option>
+      <option value="発酵">発酵</option>
+    </select>
+  </div>
+  <div class="filter-inner" style="margin-top:10px;">
+    <div class="tag-filters" id="tagFilters">
+      <button class="tag-chip active" data-tag="" onclick="setTagFilter(this)">すべて</button>
+      <button class="tag-chip" data-tag="お気に入り" onclick="setTagFilter(this)">❤️ お気に入り</button>
+      <button class="tag-chip" data-tag="簡単" onclick="setTagFilter(this)">⚡ 簡単</button>
+      <button class="tag-chip" data-tag="作り置き" onclick="setTagFilter(this)">🥡 作り置き</button>
+      <button class="tag-chip" data-tag="ヘルシー" onclick="setTagFilter(this)">🥗 ヘルシー</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="results-info" id="resultsInfo">読み込み中...</div>
+  <div class="recipe-grid" id="recipeGrid"></div>
+  <div class="empty-state" id="emptyState">
+    <div class="emoji">🍽️</div>
+    <h3>レシピが見つかりません</h3>
+    <p>検索条件を変えてみてください</p>
+  </div>
+</main>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">レシピを追加</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">料理名 *</label>
+        <input type="text" class="form-input" id="addTitle" placeholder="例：鶏の唐揚げ">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">カテゴリ</label>
+          <select class="form-select-full" id="addCategory">
+            <option value="和食">和食</option>
+            <option value="洋食">洋食</option>
+            <option value="中華">中華</option>
+            <option value="スイーツ">スイーツ</option>
+            <option value="スープ">スープ</option>
+            <option value="サラダ">サラダ</option>
+            <option value="漬物">漬物</option>
+            <option value="調味料">調味料</option>
+            <option value="発酵">発酵</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">調理時間（分）</label>
+          <input type="number" class="form-input" id="addTime" placeholder="30" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">材料（改行区切り、例: 鶏もも肉 300g）</label>
+        <textarea class="form-textarea" id="addIngredients" placeholder="鶏もも肉 300g&#10;醤油 大さじ2&#10;みりん 大さじ1" rows="5"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">作り方</label>
+        <textarea class="form-textarea" id="addSteps" placeholder="1. 鶏肉を一口大に切る&#10;2. 調味料を混ぜて..." rows="5"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">タグ（カンマ区切り）</label>
+        <input type="text" class="form-input" id="addTags" placeholder="簡単, お気に入り, ヘルシー">
+      </div>
+      <div class="form-group">
+        <label class="form-label">InstagramのURL（任意）</label>
+        <input type="text" class="form-input" id="addIgUrl" placeholder="https://www.instagram.com/p/...">
+      </div>
+      <button class="btn-primary" onclick="saveRecipe()">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Source Import Modal (Instagram + YouTube) -->
+<div class="modal-overlay" id="igModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="sourceModalTitle">📷 レシピを取り込む</div>
+      <button class="modal-close" onclick="closeModal('igModal')">✕</button>
+    </div>
+    <div class="ig-modal-body">
+      <div class="source-tabs">
+        <button class="source-tab active" id="tabInstagram" onclick="switchSourceTab('instagram')">📷 Instagram</button>
+        <button class="source-tab" id="tabYoutube" onclick="switchSourceTab('youtube')">▶️ YouTube</button>
+        <button class="source-tab" id="tabWeb" onclick="switchSourceTab('web')">🌐 Web</button>
+      </div>
+
+      <!-- Instagram Panel -->
+      <div class="tab-panel active" id="panelInstagram">
+        <div class="ig-note">
+          💡 <strong>使い方：</strong> InstagramのキャプションをコピーしてAIが料理名・材料・手順・時間を自動抽出します。<br><br>
+          📌 <strong>コピー方法：</strong> 投稿のキャプションを長押し → 全選択 → コピー
+        </div>
+        <div class="form-group">
+          <label class="form-label">Instagramのキャプションを貼り付け</label>
+          <textarea class="form-textarea" id="igCaption" placeholder="Instagramのキャプションをここに貼り付けてください...&#10;&#10;例：&#10;【鶏の唐揚げ】&#10;材料：鶏もも肉300g、醤油大さじ2...&#10;作り方：①鶏肉を切る..." rows="8"></textarea>
+        </div>
+        <div class="ai-loading" id="aiLoadingIg">
+          <div class="spinner"></div>
+          <p style="font-size:13px; color: var(--warm-brown);">AIが解析中です...</p>
+        </div>
+        <button class="btn-primary" onclick="extractFromSource('instagram')" id="extractBtnIg">🤖 AIで自動抽出する</button>
+      </div>
+
+      <!-- YouTube Panel -->
+      <div class="tab-panel" id="panelYoutube">
+        <div class="ig-note" style="background:#FFF3F3; border-left: 3px solid #FF4444;">
+          💡 <strong>使い方：</strong> YouTubeの概要欄にあるレシピテキストをコピーして貼り付けてください。AIが自動で整理します。<br><br>
+          📌 <strong>コピー方法：</strong> 動画ページの「もっと見る」→ 概要欄のレシピ部分を選択 → コピー<br><br>
+          🔗 <strong>動画URLも</strong>一緒に保存できます（任意）
+        </div>
+        <div class="form-group">
+          <label class="form-label">YouTubeの概要欄テキストを貼り付け</label>
+          <textarea class="form-textarea" id="ytCaption" placeholder="YouTubeの概要欄をここに貼り付けてください...&#10;&#10;例：&#10;【材料 2人分】&#10;・鶏もも肉 300g&#10;・醤油 大さじ2&#10;&#10;【作り方】&#10;1. 鶏肉を一口大に切る..." rows="8"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">動画URL（任意）</label>
+          <input type="text" class="form-input" id="ytUrl" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="ai-loading" id="aiLoadingYt">
+          <div class="spinner"></div>
+          <p style="font-size:13px; color: var(--warm-brown);">AIが解析中です...</p>
+        </div>
+        <button class="btn-primary" style="background:#CC0000;" onclick="extractFromSource('youtube')" id="extractBtnYt">🤖 AIで自動抽出する</button>
+      </div>
+
+      <!-- Web Panel -->
+      <div class="tab-panel" id="panelWeb">
+        <div class="ig-note" style="background:#F0F7FF; border-left: 3px solid #4fc3f7;">
+          💡 <strong>使い方：</strong> レシピサイト・ブログ・クックパッドなどのページテキストをコピーして貼り付けるとAIが自動整理します。<br><br>
+          📌 <strong>コピー方法：</strong> ページ上でレシピ部分を全選択（Ctrl+A or 長押し）→ コピー<br><br>
+          🔗 <strong>ページURLも</strong>一緒に保存できます（任意）
+        </div>
+        <div class="form-group">
+          <label class="form-label">Webページのテキストを貼り付け</label>
+          <textarea class="form-textarea" id="webCaption" placeholder="レシピサイトのテキストをここに貼り付けてください...&#10;&#10;例（クックパッドなど）：&#10;鶏の唐揚げ&#10;調理時間：30分&#10;材料（2人分）&#10;鶏もも肉 300g&#10;しょうゆ 大さじ2&#10;...&#10;手順&#10;1. 鶏肉を一口大に切る..." rows="8"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ページURL（任意）</label>
+          <input type="text" class="form-input" id="webUrl" placeholder="https://cookpad.com/recipe/...">
+        </div>
+        <div class="ai-loading" id="aiLoadingWeb">
+          <div class="spinner"></div>
+          <p style="font-size:13px; color: var(--warm-brown);">AIが解析中です...</p>
+        </div>
+        <button class="btn-primary" style="background:#0288d1;" onclick="extractFromSource('web')" id="extractBtnWeb">🤖 AIで自動抽出する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header" style="padding: 16px 20px;">
+      <div class="modal-title" id="detailTitle"></div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div id="detailImage" class="detail-image">🍳</div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+let recipes = JSON.parse(localStorage.getItem('myRecipes') || '[]');
+let activeTag = '';
+let currentRecipeId = null;
+
+// サンプルデータ（初回のみ）
+if (recipes.length === 0) {
+  recipes = [
+    {
+      id: 1, title: "鶏の唐揚げ", category: "和食", time: 30,
+      emoji: "🍗",
+      ingredients: [
+        {name:"鶏もも肉", amount:"300g"},{name:"醤油", amount:"大さじ2"},
+        {name:"みりん", amount:"大さじ1"},{name:"にんにく", amount:"1片"},
+        {name:"片栗粉", amount:"大さじ3"},{name:"サラダ油", amount:"適量"}
+      ],
+      steps: ["鶏肉を一口大に切る","醤油、みりん、にんにくで30分漬ける","片栗粉をまぶす","170°Cの油で5分揚げる"],
+      tags: ["簡単","お気に入り"], source: "Instagram", igUrl: "",
+      favorite: true, createdAt: new Date().toISOString()
+    },
+    {
+      id: 2, title: "トマトパスタ", category: "洋食", time: 20,
+      emoji: "🍝",
+      ingredients: [
+        {name:"スパゲッティ", amount:"200g"},{name:"トマト缶", amount:"1缶"},
+        {name:"にんにく", amount:"2片"},{name:"オリーブオイル", amount:"大さじ2"},
+        {name:"塩", amount:"適量"},{name:"バジル", amount:"適量"}
+      ],
+      steps: ["にんにくをオリーブオイルで炒める","トマト缶を加えて煮込む","茹でたパスタと和える","バジルを散らす"],
+      tags: ["簡単","ヘルシー"], source: "手動", igUrl: "",
+      favorite: false, createdAt: new Date().toISOString()
+    },
+    {
+      id: 3, title: "豚汁", category: "和食", time: 25,
+      emoji: "🥘",
+      ingredients: [
+        {name:"豚バラ肉", amount:"200g"},{name:"大根", amount:"1/4本"},
+        {name:"にんじん", amount:"1本"},{name:"こんにゃく", amount:"1枚"},
+        {name:"味噌", amount:"大さじ3"},{name:"だし", amount:"800ml"}
+      ],
+      steps: ["野菜を食べやすく切る","豚肉を炒める","だしと野菜を加えて煮る","味噌を溶かして完成"],
+      tags: ["作り置き","ヘルシー"], source: "Instagram", igUrl: "",
+      favorite: false, createdAt: new Date().toISOString()
+    },
+    {
+      id: 4, title: "チョコレートケーキ", category: "スイーツ", time: 60,
+      emoji: "🎂",
+      ingredients: [
+        {name:"薄力粉", amount:"100g"},{name:"チョコレート", amount:"100g"},
+        {name:"バター", amount:"80g"},{name:"砂糖", amount:"80g"},
+        {name:"卵", amount:"2個"},{name:"ベーキングパウダー", amount:"小さじ1"}
+      ],
+      steps: ["チョコとバターを湯煎で溶かす","砂糖と卵を加えて混ぜる","薄力粉をふるい入れる","180°Cで30分焼く"],
+      tags: ["お気に入り"], source: "Instagram", igUrl: "",
+      favorite: true, createdAt: new Date().toISOString()
+    },
+    {
+      id: 5, title: "アボカドサラダ", category: "サラダ", time: 10,
+      emoji: "🥑",
+      ingredients: [
+        {name:"アボカド", amount:"1個"},{name:"トマト", amount:"1個"},
+        {name:"レモン汁", amount:"大さじ1"},{name:"オリーブオイル", amount:"大さじ1"},
+        {name:"塩", amount:"少々"},{name:"黒胡椒", amount:"少々"}
+      ],
+      steps: ["アボカドとトマトを角切り","ドレッシング材料を混ぜる","全て和えて完成"],
+      tags: ["簡単","ヘルシー"], source: "Instagram", igUrl: "",
+      favorite: false, createdAt: new Date().toISOString()
+    }
+  ];
+  saveToStorage();
+}
+
+function saveToStorage() {
+  localStorage.setItem('myRecipes', JSON.stringify(recipes));
+}
+
+// ===== RENDER =====
+function renderRecipes(list) {
+  const grid = document.getElementById('recipeGrid');
+  const empty = document.getElementById('emptyState');
+  const info = document.getElementById('resultsInfo');
+  
+  grid.innerHTML = '';
+  
+  if (list.length === 0) {
+    empty.classList.add('show');
+    info.textContent = '0件のレシピ';
+    return;
+  }
+  
+  empty.classList.remove('show');
+  info.textContent = `${list.length}件のレシピ`;
+  
+  list.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.onclick = () => openDetail(r.id);
+    
+    const tagsHtml = r.tags.slice(0,3).map(t =>
+      `<span class="card-tag ${t==='お気に入り'||t==='簡単'?'tag-sub':'tag-main'}">${t}</span>`
+    ).join('');
+    
+    const ingredientNames = r.ingredients.map(i => i.name).join('・');
+    
+    card.innerHTML = `
+      <div class="card-image">
+        <span>${r.emoji || '🍳'}</span>
+        <div class="card-time-badge">⏱ ${r.time}分</div>
+      </div>
+      <div class="card-body">
+        <div class="card-tags">${tagsHtml}</div>
+        <div class="card-title">${r.title}</div>
+        <div class="card-ingredients">🧂 ${ingredientNames}</div>
+      </div>
+      <div class="card-footer">
+        <div class="card-source">
+          ${r.source === 'Instagram' ? '<div class="ig-dot"></div>' : r.source === 'YouTube' ? '<span class="yt-badge">YT</span>' : r.source === 'Web' ? '<span style="font-size:12px">🌐</span>' : '✏️'}
+          ${r.source}
+        </div>
+        <button class="card-fav ${r.favorite?'active':''}" onclick="event.stopPropagation(); toggleFav(${r.id}, this)">${r.favorite?'❤️':'🤍'}</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function filterRecipes() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const timeVal = document.getElementById('timeFilter').value;
+  const category = document.getElementById('categoryFilter').value;
+  
+  let filtered = recipes.filter(r => {
+    const titleMatch = r.title.toLowerCase().includes(search);
+    const ingMatch = r.ingredients.some(i => i.name.toLowerCase().includes(search));
+    const matchSearch = !search || titleMatch || ingMatch;
+    
+    let matchTime = true;
+    if (timeVal) {
+      const t = parseInt(timeVal);
+      if (t === 999) matchTime = r.time > 60;
+      else matchTime = r.time <= t;
+    }
+    
+    const matchCat = !category || r.category === category;
+    
+    const matchTag = !activeTag ||
+      (activeTag === 'お気に入り' ? r.favorite : r.tags.includes(activeTag));
+    
+    return matchSearch && matchTime && matchCat && matchTag;
+  });
+  
+  renderRecipes(filtered);
+}
+
+function setTagFilter(el) {
+  document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeTag = el.dataset.tag;
+  filterRecipes();
+}
+
+// ===== DETAIL =====
+function openDetail(id) {
+  const r = recipes.find(x => x.id === id);
+  if (!r) return;
+  currentRecipeId = id;
+  
+  document.getElementById('detailTitle').textContent = r.title;
+  
+  const imgEl = document.getElementById('detailImage');
+  imgEl.innerHTML = `<span style="font-size:64px">${r.emoji||'🍳'}</span>`;
+  imgEl.style.display = 'flex';
+  imgEl.style.alignItems = 'center';
+  imgEl.style.justifyContent = 'center';
+  
+  const tagsHtml = r.tags.map(t => `<span class="card-tag tag-sub">${t}</span>`).join('');
+  const ingrHtml = r.ingredients.map(i =>
+    `<div class="ingredient-item"><span class="ingredient-name">${i.name}</span><span class="ingredient-amount">${i.amount}</span></div>`
+  ).join('');
+  const stepsHtml = r.steps.map((s,i) =>
+    `<li class="step-item"><div class="step-num">${i+1}</div><div>${s}</div></li>`
+  ).join('');
+  
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center;">
+      ${tagsHtml}
+      <span style="margin-left:auto; font-family:'DM Mono',monospace; font-size:12px; color:var(--warm-brown);">⏱ ${r.time}分 · ${r.category}</span>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">材料</div>
+      <div class="ingredients-list">${ingrHtml}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">作り方</div>
+      <ol class="steps-list">${stepsHtml}</ol>
+    </div>
+    ${r.igUrl ? `<div style="margin-top:16px;"><a href="${r.igUrl}" target="_blank" style="font-size:12px; color:var(--terracotta); text-decoration:none;">${r.source === 'YouTube' ? '▶️ YouTubeで見る →' : r.source === 'Web' ? '🌐 Webページで見る →' : '📷 Instagramで見る →'}</a></div>` : ''}
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button onclick="deleteRecipe(${r.id})" style="flex:1; padding:10px; border:1.5px solid rgba(200,80,50,0.3); background:white; color:var(--terracotta); border-radius:10px; font-family:inherit; cursor:pointer; font-size:13px;">🗑 削除</button>
+      <button onclick="toggleFavDetail(${r.id})" style="flex:1; padding:10px; border:1.5px solid rgba(139,94,60,0.2); background:white; color:var(--warm-brown); border-radius:10px; font-family:inherit; cursor:pointer; font-size:13px;">${r.favorite?'💔 お気に入り解除':'❤️ お気に入り'}</button>
+    </div>
+  `;
+  
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function toggleFav(id, el) {
+  const r = recipes.find(x => x.id === id);
+  if (!r) return;
+  r.favorite = !r.favorite;
+  el.textContent = r.favorite ? '❤️' : '🤍';
+  el.classList.toggle('active', r.favorite);
+  saveToStorage();
+  showToast(r.favorite ? '❤️ お気に入りに追加' : 'お気に入りを解除');
+}
+
+function toggleFavDetail(id) {
+  const r = recipes.find(x => x.id === id);
+  if (!r) return;
+  r.favorite = !r.favorite;
+  saveToStorage();
+  closeModal('detailModal');
+  filterRecipes();
+  showToast(r.favorite ? '❤️ お気に入りに追加' : 'お気に入りを解除');
+}
+
+function deleteRecipe(id) {
+  if (!confirm('このレシピを削除しますか？')) return;
+  recipes = recipes.filter(x => x.id !== id);
+  saveToStorage();
+  closeModal('detailModal');
+  filterRecipes();
+  showToast('🗑 レシピを削除しました');
+}
+
+// ===== ADD RECIPE =====
+function openAddModal() {
+  document.getElementById('addTitle').value = '';
+  document.getElementById('addTime').value = '';
+  document.getElementById('addIngredients').value = '';
+  document.getElementById('addSteps').value = '';
+  document.getElementById('addTags').value = '';
+  document.getElementById('addIgUrl').value = '';
+  document.getElementById('addModal').classList.add('open');
+}
+
+function saveRecipe() {
+  const title = document.getElementById('addTitle').value.trim();
+  if (!title) { alert('料理名を入力してください'); return; }
+  
+  const ingrLines = document.getElementById('addIngredients').value.split('\n').filter(Boolean);
+  const ingredients = ingrLines.map(l => {
+    const parts = l.trim().split(/\s+/);
+    const amount = parts.pop() || '';
+    return { name: parts.join(' '), amount };
+  });
+  
+  const stepsLines = document.getElementById('addSteps').value.split('\n').filter(Boolean)
+    .map(s => s.replace(/^[\d\.\)、。]+\s*/, ''));
+  
+  const tagsRaw = document.getElementById('addTags').value;
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  
+  const emojis = {'和食':'🍱','洋食':'🍝','中華':'🥟','スイーツ':'🍰','スープ':'🍲','サラダ':'🥗','漬物':'🥒','調味料':'🧂','発酵':'🫙','その他':'🍳'};
+  const cat = document.getElementById('addCategory').value;
+  
+  const newRecipe = {
+    id: Date.now(),
+    title,
+    category: cat,
+    time: parseInt(document.getElementById('addTime').value) || 30,
+    emoji: emojis[cat] || '🍳',
+    ingredients,
+    steps: stepsLines,
+    tags,
+    source: document.getElementById('addIgUrl').value ? 'Instagram' : '手動',
+    igUrl: document.getElementById('addIgUrl').value,
+    favorite: false,
+    createdAt: new Date().toISOString()
+  };
+  
+  recipes.unshift(newRecipe);
+  saveToStorage();
+  closeModal('addModal');
+  filterRecipes();
+  showToast('✅ レシピを保存しました！');
+}
+
+// ===== INSTAGRAM / YOUTUBE AI EXTRACT =====
+function openSourceModal(source) {
+  document.getElementById('igCaption').value = '';
+  document.getElementById('ytCaption').value = '';
+  document.getElementById('ytUrl').value = '';
+  document.getElementById('webCaption').value = '';
+  document.getElementById('webUrl').value = '';
+  document.getElementById('igModal').classList.add('open');
+  switchSourceTab(source);
+}
+
+function openIgModal() { openSourceModal('instagram'); }
+
+function switchSourceTab(source) {
+  document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab' + source.charAt(0).toUpperCase() + source.slice(1)).classList.add('active');
+  document.getElementById('panel' + source.charAt(0).toUpperCase() + source.slice(1)).classList.add('active');
+}
+
+async function extractFromSource(source) {
+  const isYt = source === 'youtube';
+  const isWeb = source === 'web';
+  let caption, loadingEl, btnEl;
+
+  if (isYt) {
+    caption = document.getElementById('ytCaption').value.trim();
+    loadingEl = document.getElementById('aiLoadingYt');
+    btnEl = document.getElementById('extractBtnYt');
+  } else if (isWeb) {
+    caption = document.getElementById('webCaption').value.trim();
+    loadingEl = document.getElementById('aiLoadingWeb');
+    btnEl = document.getElementById('extractBtnWeb');
+  } else {
+    caption = document.getElementById('igCaption').value.trim();
+    loadingEl = document.getElementById('aiLoadingIg');
+    btnEl = document.getElementById('extractBtnIg');
+  }
+
+  if (!caption) { alert('テキストを貼り付けてください'); return; }
+
+  loadingEl.classList.add('show');
+  btnEl.disabled = true;
+
+  const sourceName = isYt ? 'YouTubeの概要欄' : isWeb ? 'Webページ' : 'Instagramのキャプション';
+
+  try {
+    const prompt = `以下の${sourceName}からレシピ情報を抽出してください。
+必ずJSON形式のみで返してください（マークダウンや説明文は不要）。
+
+テキスト:
+${caption}
+
+出力形式（JSONのみ）:
+{
+  "title": "料理名",
+  "category": "和食/洋食/中華/スイーツ/スープ/サラダ/漬物/調味料/発酵/その他",
+  "time": 30,
+  "ingredients": [{"name":"材料名","amount":"分量"}],
+  "steps": ["手順1","手順2"],
+  "tags": ["タグ1","タグ2"]
+}
+
+timeは数値（分）で。ingredientsは最大10個。stepsは最大8個。tagsは「簡単」「ヘルシー」「作り置き」「お気に入り」から判断して1-3個。漬物・発酵・調味料カテゴリも認識してください。`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const extracted = JSON.parse(clean);
+
+    const emojis = {
+      '和食':'🍱','洋食':'🍝','中華':'🥟','スイーツ':'🍰',
+      'スープ':'🍲','サラダ':'🥗','漬物':'🥒','調味料':'🧂','発酵':'🫙','その他':'🍳'
+    };
+
+    const savedUrl = isYt
+      ? (document.getElementById('ytUrl').value || '')
+      : isWeb
+        ? (document.getElementById('webUrl').value || '')
+        : '';
+
+    const newRecipe = {
+      id: Date.now(),
+      title: extracted.title || 'タイトル不明',
+      category: extracted.category || 'その他',
+      time: extracted.time || 30,
+      emoji: emojis[extracted.category] || '🍳',
+      ingredients: extracted.ingredients || [],
+      steps: extracted.steps || [],
+      tags: extracted.tags || [],
+      source: isYt ? 'YouTube' : isWeb ? 'Web' : 'Instagram',
+      igUrl: savedUrl,
+      favorite: false,
+      createdAt: new Date().toISOString()
+    };
+
+    recipes.unshift(newRecipe);
+    saveToStorage();
+    closeModal('igModal');
+    filterRecipes();
+    const label = isYt ? 'YouTube' : isWeb ? 'Web' : 'Instagram';
+    showToast(`✅ ${label}からレシピを取り込みました！`);
+
+  } catch (e) {
+    console.error(e);
+    alert('抽出に失敗しました。テキストをご確認の上、再度お試しください。');
+  } finally {
+    loadingEl.classList.remove('show');
+    btnEl.disabled = false;
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', (e) => {
+    if (e.target === el) el.classList.remove('open');
+  });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== GOOGLE DRIVE EXPORT / IMPORT =====
+function exportToFile() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    recipeCount: recipes.length,
+    recipes: recipes
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  a.href = url;
+  a.download = `マイレシピ帳_${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const status = document.getElementById('syncStatus');
+  status.textContent = `✅ ${now.toLocaleDateString('ja-JP')} ${now.toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'})} に保存`;
+  status.className = 'sync-status ok';
+  showToast('📤 バックアップを保存しました！Google Driveにアップロードしてください');
+}
+
+function triggerImport() {
+  document.getElementById('importFileInput').click();
+}
+
+function importFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      let imported;
+      if (Array.isArray(data)) {
+        imported = data;
+      } else if (data.recipes && Array.isArray(data.recipes)) {
+        imported = data.recipes;
+      } else {
+        throw new Error('形式が不正です');
+      }
+
+      const existingIds = new Set(recipes.map(r => r.id));
+      let newCount = 0;
+      imported.forEach(r => {
+        if (!existingIds.has(r.id)) {
+          recipes.push(r);
+          newCount++;
+        }
+      });
+
+      if (newCount === 0) {
+        // 既存と同じIDのものしかなければ上書き確認
+        if (confirm(`すべてのレシピを読み込んだデータで上書きしますか？\n（現在: ${recipes.length}件 → 読み込み: ${imported.length}件）`)) {
+          recipes = imported;
+        } else {
+          return;
+        }
+      } else {
+        recipes = [...imported.filter(r => !existingIds.has(r.id)), ...recipes];
+      }
+
+      saveToStorage();
+      filterRecipes();
+
+      const status = document.getElementById('syncStatus');
+      const now = new Date();
+      status.textContent = `✅ ${now.toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'})} に読み込み完了`;
+      status.className = 'sync-status ok';
+
+      const msg = newCount > 0
+        ? `📥 ${newCount}件の新しいレシピを追加しました！`
+        : `📥 ${imported.length}件のレシピを読み込みました！`;
+      showToast(msg);
+
+    } catch (err) {
+      alert('読み込みに失敗しました。正しいバックアップファイルを選んでください。');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// 最終保存日時を表示
+(function() {
+  const saved = localStorage.getItem('myRecipes');
+  if (saved) {
+    try {
+      const arr = JSON.parse(saved);
+      if (arr.length > 0) {
+        const status = document.getElementById('syncStatus');
+        status.textContent = `💾 ${arr.length}件 ブラウザに保存中`;
+        status.className = 'sync-status warn';
+      }
+    } catch(e) {}
+  }
+})();
+
+// Init
+filterRecipes();
+</script>
+</body>
+</html>
