@@ -1361,38 +1361,79 @@ async function extractFromSource(source) {
   const sourceName = isYt ? 'YouTubeの概要欄' : isWeb ? 'Webページ' : 'Instagramのキャプション';
 
   try {
-    const prompt = `以下の${sourceName}からレシピ情報を抽出してください。
-必ずJSON形式のみで返してください（マークダウンや説明文は不要）。
+    const prompt = `以下の${sourceName}のテキストからレシピ情報を抽出してください。
+レシピ情報が含まれていない場合でも、できる限り情報を推測して抽出してください。
+必ずJSON形式のみで返してください。前後に説明文・マークダウン記号は一切不要です。
 
 テキスト:
-${caption}
+${caption.slice(0, 3000)}
 
-出力形式（JSONのみ）:
-{
-  "title": "料理名",
-  "category": "和食/洋食/中華/スイーツ/スープ/サラダ/漬物/調味料/発酵/その他",
-  "time": 30,
-  "ingredients": [{"name":"材料名","amount":"分量"}],
-  "steps": ["手順1","手順2"],
-  "tags": ["タグ1","タグ2"]
-}
+以下のJSON形式で返してください（余計な文字は一切つけないこと）:
+{"title":"料理名","category":"和食","time":30,"ingredients":[{"name":"材料名","amount":"分量"}],"steps":["手順1","手順2"],"tags":["簡単"]}
 
-timeは数値（分）で。ingredientsは最大10個。stepsは最大8個。tagsは「簡単」「ヘルシー」「作り置き」「お気に入り」から判断して1-3個。漬物・発酵・調味料カテゴリも認識してください。`;
+categoryは「和食/洋食/中華/スイーツ/スープ/サラダ/漬物/調味料/発酵/その他」のどれか1つ。
+timeは整数（分）。ingredientsは最大10個。stepsは最大8個。tagsは「簡単」「ヘルシー」「作り置き」から0〜2個。
+情報が不明な場合はtitle「レシピ」、time 30、空配列を使用。`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        max_tokens: 1500,
         messages: [{ role: "user", content: prompt }]
       })
     });
 
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
     const data = await response.json();
-    const text = data.content.map(i => i.text || '').join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const extracted = JSON.parse(clean);
+
+    if (!data.content || data.content.length === 0) {
+      throw new Error('APIレスポンスが空です');
+    }
+
+    const text = data.content.map(i => i.text || '').join('').trim();
+
+    // JSON部分を複数パターンで抽出
+    let extracted = null;
+    const patterns = [
+      /```json\s*([\s\S]*?)\s*```/,
+      /```\s*([\s\S]*?)\s*```/,
+      /(\{[\s\S]*\})/
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        try {
+          extracted = JSON.parse(match[1] || match[0]);
+          break;
+        } catch (e) { continue; }
+      }
+    }
+
+    // パターンマッチ失敗時はそのままパース
+    if (!extracted) {
+      try {
+        extracted = JSON.parse(text);
+      } catch (e) {
+        // 最終フォールバック：タイトルだけ拾って手動入力モードへ
+        const titleMatch = caption.match(/【(.+?)】|「(.+?)」|^(.+?)\n/);
+        const guessedTitle = titleMatch ? (titleMatch[1] || titleMatch[2] || titleMatch[3]) : 'レシピ';
+        extracted = {
+          title: guessedTitle.slice(0, 30),
+          category: 'その他',
+          time: 30,
+          ingredients: [],
+          steps: [],
+          tags: []
+        };
+        showToast('⚠️ 一部の情報を抽出できませんでした。手動で補完してください。');
+      }
+    }
 
     const emojis = {
       '和食':'🍱','洋食':'🍝','中華':'🥟','スイーツ':'🍰',
@@ -1405,15 +1446,16 @@ timeは数値（分）で。ingredientsは最大10個。stepsは最大8個。tag
         ? (document.getElementById('webUrl').value || '')
         : '';
 
+    const category = extracted.category || 'その他';
     const newRecipe = {
       id: Date.now(),
-      title: extracted.title || 'タイトル不明',
-      category: extracted.category || 'その他',
-      time: extracted.time || 30,
-      emoji: emojis[extracted.category] || '🍳',
-      ingredients: extracted.ingredients || [],
-      steps: extracted.steps || [],
-      tags: extracted.tags || [],
+      title: (extracted.title || 'タイトル不明').slice(0, 50),
+      category,
+      time: parseInt(extracted.time) || 30,
+      emoji: emojis[category] || '🍳',
+      ingredients: Array.isArray(extracted.ingredients) ? extracted.ingredients.slice(0, 10) : [],
+      steps: Array.isArray(extracted.steps) ? extracted.steps.slice(0, 8) : [],
+      tags: Array.isArray(extracted.tags) ? extracted.tags.slice(0, 3) : [],
       source: isYt ? 'YouTube' : isWeb ? 'Web' : 'Instagram',
       igUrl: savedUrl,
       favorite: false,
@@ -1428,8 +1470,11 @@ timeは数値（分）で。ingredientsは最大10個。stepsは最大8個。tag
     showToast(`✅ ${label}からレシピを取り込みました！`);
 
   } catch (e) {
-    console.error(e);
-    alert('抽出に失敗しました。テキストをご確認の上、再度お試しください。');
+    console.error('抽出エラー:', e);
+    const msg = e.message.includes('API error')
+      ? 'APIに接続できませんでした。しばらく待ってから再試行してください。'
+      : 'テキストが短すぎるか、レシピ情報が含まれていない可能性があります。もう少し長いテキストを貼り付けてみてください。';
+    alert(`抽出に失敗しました。\n\n${msg}`);
   } finally {
     loadingEl.classList.remove('show');
     btnEl.disabled = false;
